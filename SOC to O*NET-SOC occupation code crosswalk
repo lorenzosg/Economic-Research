@@ -1,0 +1,73 @@
+#loading O*NET data set (this one is of tasks and detailed work activities but any with occupation codes of interest will do)
+dwa.19 <- read_xlsx("Tasks to DWAs.xlsx")
+dwa.19 <- dwa.19[c("O*NET-SOC Code", "Title")] #subsettting to keep only O*NET occupations and occuaption titles
+
+
+#reading wage and employment data from the Occupational Employment Statistics (OES) from 2018 (any data with SOC codes of interest will do)
+income.soc <- read_xlsx("national_M2018_dl.xlsx")  
+income.soc <- income.soc[c("OCC_CODE" , "OCC_TITLE", "TOT_EMP", "A_MEAN", "A_MEDIAN")] #sbsetting only the specified columns (Only "OCC_CODE" is needed)
+
+#saving SOC codes and ONET codes from ONET data as separate objects for cleaner presentation in loops
+soc <- income.soc$OCC_CODE
+onet <- dwa.19$O.NET.SOC.Code
+
+#creating crosswalk from SOC to ONET when there is a direct match at the SOC level
+datalist <- list() #initating empty list to store dataframes 
+for(i in 1:length(soc)){
+  if(soc[i] %in% substr(onet, 1, 7)){ #if the soc code exists at the SOC level of the ONET code
+    soc.code <- soc[i]
+   onet.code <- unique(onet[substr(onet, 1, 7) %in% soc[i] & substr(onet, 9, 10) == "00"]) #get all the ONET codes which are a direct match at the soc level and do not have a detailed ONET classification. 
+        if(length(onet.code) == 0L){ #there will be some where the second condition (last two digits of ONET code = 00) is not met and will subsequently return 'character(0). 
+      onet.code = 0 #when this happens make ONET = 0. 
+        }
+      datalist[[i]] <- data.frame(soc.code, onet.code)
+
+
+  }
+}
+
+SOC_level <- do.call(rbind, datalist) #rowbind each dataframe in the list into a dataframe
+SOC_level <- SOC_level[SOC_level$ONET != 0,] #get rid of those SOC codes which were not found in the ONET data. 
+
+
+#getting all ONET detailed occupations that correspond to SOC codes which consist of "all other" occupations, for example: "Managers, All Other", "Education Adminsitrators, All Other" which exist more granulalry at the SOC-O*NET level. For example, "Education Adminsitrators, All Other" (11-9039) matches with "Distance learning coordinators" (11-9039.01) and "Fitness and Wellness Coordinators" (11-9039.02)
+datalist <- list()
+for(i in 1:length(soc)){
+  if(endsWith(soc[i], '9')) {
+    if(soc[i] %in% substr(onet, 1, 7) == TRUE) {
+      soc.code = soc[i]
+      onet.code = unique(onet[substr(onet, 1, 7) %in% soc[i]])
+      data <- data.frame(soc.code, onet.code)
+      datalist[[i]] <- data
+      
+  }
+    
+  }
+}
+
+
+
+#for those SOC codes which end with 0 (soc broad occupation level), take the first 6 characters and match with all ONET codes which start with those 6 characters. 
+datalist <- list()
+for(i in 1:length(soc)){
+  if (substr(soc[i], 7, 7) == '0' ) { #if the soc codes end with 0 (broad occupation level)
+    if (substr(soc[i], 1, 6) %in% substr(onet, 1, 6) == TRUE) {
+    soc.code = soc[i]
+    onet.code = unique(onet[substr(onet, 1, 6) %in% substr(soc[i], 1, 6)])
+     datalist[[i]] <- data.frame(soc.code, onet.code)
+    }
+    
+  }
+ 
+  }
+      
+      
+}
+
+
+
+zero_onet <- do.call(rbind, datalist) 
+
+
+#combining the different crosswalks to create ultimate SOC to ONET crosswalk 
+crosswalk <- rbind(SOC_level, nine_ONET, zero_onet)
