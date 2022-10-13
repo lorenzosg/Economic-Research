@@ -1,11 +1,11 @@
-#loading O*NET data set (this one is of tasks and detailed work activities but any with an exhaustive list of occupations will do)
+#loading O*NET data set (this one is of tasks and detailed work activities but any with occupation codes of interest will do)
 dwa.19 <- read_xlsx("Tasks to DWAs.xlsx")
 dwa.19 <- dwa.19[c("O*NET-SOC Code", "Title")] #subsettting to keep only O*NET occupations and occuaption titles
 
 
-#reading wage and employment data from the Occupational Employment Statistics (OES) from 2018 (any data with SOC codes will do)
+#reading wage and employment data from the Occupational Employment Statistics (OES) from 2018 (any data with SOC codes of interest will do)
 income.soc <- read_xlsx("national_M2018_dl.xlsx")  
-income.soc <- income.soc[c("OCC_CODE" , "OCC_TITLE", "TOT_EMP", "A_MEAN", "A_MEDIAN")]
+income.soc <- income.soc[c("OCC_CODE" , "OCC_TITLE", "TOT_EMP", "A_MEAN", "A_MEDIAN")] #sbsetting only the specified columns (Only "OCC_CODE" is needed)
 
 #saving SOC codes and ONET codes from ONET data as separate objects for cleaner presentation in loops
 soc <- income.soc$OCC_CODE
